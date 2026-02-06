@@ -1,70 +1,54 @@
 // ===============================
-// Supabase configuration
+// Static access gate (NO EMAIL)
 // ===============================
 
-const SUPABASE_URL = "https://skmomjhpzuomdopnmdhx.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_ZwI0wv4bHYpemg5zGEWymQ_RYKzmny5";
+const VALID_CODES = [
+  "medico2025",
+  "admin2025",
+  "staff2025"
+];
 
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error("Missing Supabase environment variables");
-}
-
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+const VIEWER_URL = "https://viewer.drakarinapesce.com.ar/";
 
 // ===============================
 // DOM elements
 // ===============================
 
 const form = document.getElementById("login-form");
-const emailInput = document.getElementById("email");
+const codeInput = document.getElementById("code");
 const statusEl = document.getElementById("status");
 
 // ===============================
-// Redirect if already logged in
+// Auto-redirect if authorized
 // ===============================
 
-(async () => {
-  const { data } = await supabase.auth.getSession();
-
-  if (data?.session) {
-    window.location.href = "https://viewer.drakarinapesce.com.ar/";
-  }
-})();
+if (localStorage.getItem("gate_authorized") === "true") {
+  window.location.href = VIEWER_URL;
+}
 
 // ===============================
-// Handle Magic Link login
+// Handle access code
 // ===============================
 
-form.addEventListener("submit", async (e) => {
+form.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const email = emailInput.value.trim();
+  const code = codeInput.value.trim();
 
-  if (!email) {
-    statusEl.textContent = "Please enter a valid email.";
+  if (!code) {
+    statusEl.textContent = "Please enter access code.";
     return;
   }
 
-  statusEl.textContent = "Sending magic link...";
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: window.location.origin
-    }
-  });
-
-  if (error) {
-    console.error(error);
-    statusEl.textContent = "Error sending magic link.";
-    return;
+  if (VALID_CODES.includes(code)) {
+    localStorage.setItem("gate_authorized", "true");
+    statusEl.textContent = "Access granted. Redirecting…";
+    setTimeout(() => {
+      window.location.href = VIEWER_URL;
+    }, 300);
+  } else {
+    statusEl.textContent = "Invalid access code.";
+    codeInput.value = "";
+    codeInput.focus();
   }
-
-  statusEl.textContent =
-    "Magic link sent. Check your email to continue.";
 });
-
